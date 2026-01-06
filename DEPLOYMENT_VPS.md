@@ -3,11 +3,20 @@
 Ce guide explique comment déployer **ShopManagement** (backend Django + frontend Angular) sur un VPS  
 avec **Docker** et **docker-compose**, en utilisant le fichier `docker-compose.yml` global.
 
+### Architecture des dépôts Git
+
+Le projet est organisé en **3 dépôts Git séparés** :
+
+1. **`Shopmanagement-backend`** : Code Django (API, modèles, vues, etc.)
+2. **`ShopManagement-Front`** : Code Angular (interface utilisateur)
+3. **`fulle-projet-management-shop`** : Configuration de déploiement (docker-compose global, scripts, guide)
+
 Ce guide part du principe que :
 
 - Ton VPS est accessible à l’adresse **`185.97.144.208`**
 - Tu te connectes en **root** (ou un autre utilisateur avec sudo)
 - Le code des projets se trouvera dans **`/opt/shop-management`** sur le VPS
+- Tu as accès aux 3 dépôts Git (URLs GitHub/GitLab)
 
 ---
 
@@ -74,20 +83,53 @@ mkdir -p /opt/shop-management
 cd /opt/shop-management
 ```
 
+### 2.1. Structure finale attendue
+
+Après le clonage des 3 dépôts, la structure sera :
+
+```
+/opt/shop-management/
+├── Shopmanagement-backend/      # Repo 1 : Code Django
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── ...
+├── ShopManagement-Front/         # Repo 2 : Code Angular
+│   ├── package.json
+│   ├── Dockerfile
+│   └── ...
+├── fulle-projet-management-shop/ # Repo 3 : Config déploiement
+│   ├── docker-compose.yml
+│   ├── deploy.sh
+│   └── DEPLOYMENT_VPS.md
+├── docker-compose.yml            # Copié depuis fulle-projet-management-shop/
+└── .env                          # Fichier de configuration
+```
+
 Tu as deux options pour amener le code sur le VPS :
 
-### Option A – Cloner directement les dépôts sur le VPS
+### Option A – Cloner directement les 3 dépôts sur le VPS (recommandé)
 
 ```bash
 cd /opt/shop-management
 
+# Cloner les 3 dépôts
 git clone https://github.com/lyade28/Shopmanagement-backend.git
 git clone https://github.com/lyade28/ShopManagement-Front.git
+git clone https://github.com/lyade28/fulle-projet-management-shop.git
+
+# Le docker-compose.yml global se trouve dans le repo fulle-projet-management-shop
+# Il sera automatiquement dans /opt/shop-management/fulle-projet-management-shop/docker-compose.yml
 ```
 
-Puis copie le `docker-compose.yml` global (depuis ta machine locale) dans `/opt/shop-management`.
+**Important** : Après le clonage, tu dois copier le `docker-compose.yml` à la racine de `/opt/shop-management` :
 
-### Option B – Utiliser le script `deploy.sh` global (recommandé)
+```bash
+cd /opt/shop-management
+cp fulle-projet-management-shop/docker-compose.yml .
+```
+
+### Option B – Utiliser le script `deploy.sh` global (automatisé)
 
 Sur **ta machine locale**, dans le dossier racine `management-boutique` :
 
@@ -100,8 +142,11 @@ Ce script :
 
 - se connecte en SSH au VPS
 - crée `/opt/shop-management`
-- clone / met à jour les deux dépôts
-- lance les scripts de déploiement
+- clone / met à jour les 3 dépôts
+- copie le `docker-compose.yml` à la racine
+- lance le déploiement avec `docker compose up -d --build`
+
+**Note** : Remplace `TON_USER` par ton nom d'utilisateur GitHub/GitLab dans les URLs ci-dessus.
 
 ---
 
@@ -227,13 +272,21 @@ Sur le VPS :
 ```bash
 cd /opt/shop-management
 
+# Mettre à jour les 3 dépôts
 cd Shopmanagement-backend
 git pull --ff-only
 
 cd ../ShopManagement-Front
 git pull --ff-only
 
+cd ../fulle-projet-management-shop
+git pull --ff-only
+
+# Copier le docker-compose.yml mis à jour si nécessaire
 cd ..
+cp fulle-projet-management-shop/docker-compose.yml .
+
+# Rebuild et redémarrer
 docker compose up -d --build || docker-compose up -d --build
 ```
 
@@ -243,6 +296,8 @@ Ou bien, depuis ta machine locale, relancer le script global :
 cd /Users/dev-of/Documents/perso/dev/management-boutique
 ./deploy.sh
 ```
+
+Le script mettra automatiquement à jour les 3 dépôts et redéploiera.
 
 ---
 
