@@ -1,0 +1,25 @@
+# Ignorer les sous-repos Git (ce sont des repos séparés)
+Shopmanagement-backend/
+ShopManagement-Front/
+
+# Fichiers d'environnement
+.env
+.env.local
+.env.*.local
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Fichiers temporaires
+tmp/
+temp/
+*.tmp
+
