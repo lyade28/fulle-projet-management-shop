@@ -159,9 +159,9 @@ remote "
     exit 1
   fi
 
-  if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
-    echo '❌ docker-compose n'\''est pas installé sur le VPS.';
-    echo 'Installe docker-compose d'\''abord (voir DEPLOYMENT_VPS.md).';
+  if ! docker compose version >/dev/null 2>&1; then
+    echo '❌ docker compose n'\''est pas installé sur le VPS.';
+    echo 'Installe Docker Compose d'\''abord (voir DEPLOYMENT_VPS.md).';
     exit 1
   fi
 
@@ -197,34 +197,43 @@ remote "
   cd '${REMOTE_BASE_DIR}';
 
   # Arrêter les conteneurs existants s'ils tournent
-  docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true;
+  docker compose down 2>/dev/null || true;
 
   # Build et démarrage
   echo '📦 Build des images...';
-  docker compose build --no-cache || docker-compose build --no-cache;
+  docker compose build --no-cache;
 
   echo '▶️  Démarrage des services...';
-  docker compose up -d || docker-compose up -d;
+  docker compose up -d;
 
   # Attendre que les services soient prêts
-  echo '⏳ Attente du démarrage des services (30 secondes)...';
-  sleep 30;
+  echo '⏳ Attente du démarrage des services (45 secondes)...';
+  sleep 45;
 
   # Vérifier que les conteneurs sont bien démarrés
   echo '🔍 Vérification de l'\''état des conteneurs...';
-  docker compose ps || docker-compose ps;
+  docker compose ps;
+
+  # Vérifier l'état de la base de données
+  echo '🔍 Vérification de l'\''état de PostgreSQL...';
+  if ! docker compose ps db | grep -q 'healthy'; then
+    echo '⚠️  PostgreSQL n'\''est pas healthy. Logs:';
+    docker compose logs --tail=50 db;
+    echo '';
+    echo '💡 Vérifie que DATABASE_PASSWORD est défini dans .env';
+  fi;
 
   # Attendre que la base de données soit prête avant les migrations
   echo '⏳ Attente que la base de données soit prête...';
-  sleep 5;
+  sleep 10;
 
   # Appliquer les migrations Django
   echo '📊 Application des migrations...';
-  docker compose exec -T backend python manage.py migrate --noinput || docker-compose exec -T backend python manage.py migrate --noinput || true;
+  docker compose exec -T backend python manage.py migrate --noinput || true;
 
   # Collecter les fichiers statiques
   echo '📁 Collecte des fichiers statiques...';
-  docker compose exec -T backend python manage.py collectstatic --noinput || docker-compose exec -T backend python manage.py collectstatic --noinput || true;
+  docker compose exec -T backend python manage.py collectstatic --noinput || true;
 "
 echo -e "${GREEN}✅ Déploiement terminé sur le VPS.${NC}"
 
